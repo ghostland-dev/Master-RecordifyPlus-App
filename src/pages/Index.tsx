@@ -1,3 +1,4 @@
+
 import { Header } from "@/components/Header";
 import { RecordingControls } from "@/components/RecordingControls";
 import { WebcamPreview } from "@/components/WebcamPreview";
@@ -8,6 +9,7 @@ import { ExportDialog, ExportOptions } from "@/components/ExportDialog";
 import { useScreenRecording } from "@/hooks/useScreenRecording";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import { Github } from "lucide-react";
 
 const Index = () => {
   const {
@@ -97,7 +99,7 @@ const Index = () => {
         <div className="max-w-5xl mx-auto">
           <div className="animate-slide-up mb-8">
             <h1 className="text-4xl font-display font-bold text-center">
-              Screen Recording Studio
+              Renix Screen Recorder
             </h1>
             <p className="text-center text-muted-foreground mt-2 max-w-md mx-auto">
               Capture your screen with professional quality and intuitive controls.
@@ -182,6 +184,20 @@ const Index = () => {
               This is a web version of the application. To use the desktop version with 
               advanced features, compile the app locally with Electron.
             </p>
+            <div className="mt-4 flex flex-col items-center">
+              <p className="font-semibold mb-1">Created by Ismail MOUYAHADA</p>
+              <div className="flex items-center gap-2">
+                <span>Open Source Project</span>
+                <a href="https://github.com/ismailmouyahada" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Github className="h-4 w-4" />
+                  <span>GitHub</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </main>

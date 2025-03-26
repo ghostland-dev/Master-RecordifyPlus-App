@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Settings, Download, Info } from "lucide-react";
+import { Settings, Download, Info, Github } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function Header() {
@@ -22,14 +22,17 @@ export function Header() {
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg animate-scale-in">
             R
           </div>
-          <h1 className="text-xl font-display font-medium">Recordify</h1>
+          <h1 className="text-xl font-display font-medium">Renix Screen Recorder</h1>
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon" className="button-transition">
+          <Button variant="ghost" size="icon" className="button-transition" title="About">
             <Info className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="button-transition">
+          <Button variant="ghost" size="icon" className="button-transition" title="GitHub Repository">
+            <Github className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="button-transition" title="Settings">
             <Settings className="h-5 w-5" />
           </Button>
           <Button variant="outline" className="button-transition gap-2">

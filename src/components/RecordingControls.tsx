@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { RecordingTimer } from "@/components/RecordingTimer";
 import { Play, Pause, Square, Save, Cpu, Mic, Settings, Monitor } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDevices } from "@/hooks/useDevices";
 import { Badge } from "@/components/ui/badge";
+import { RecordingSettings } from "@/components/SettingsPanel";
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -27,6 +28,7 @@ interface RecordingControlsProps {
   onPause: () => void;
   onResume: () => void;
   onSave: () => void;
+  settings?: RecordingSettings;
 }
 
 export function RecordingControls({
@@ -37,7 +39,8 @@ export function RecordingControls({
   onStop,
   onPause,
   onResume,
-  onSave
+  onSave,
+  settings
 }: RecordingControlsProps) {
   const [recordSystemAudio, setRecordSystemAudio] = useState(true);
   const [recordMicrophone, setRecordMicrophone] = useState(true);
@@ -46,14 +49,29 @@ export function RecordingControls({
   
   const { audioInputs, loading } = useDevices();
   
+  // Load saved settings
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('recordingSettings');
+      if (savedSettings) {
+        const parsedSettings = JSON.parse(savedSettings) as RecordingSettings;
+        console.log('Loaded saved settings:', parsedSettings);
+      }
+    } catch (error) {
+      console.error('Error loading saved settings:', error);
+    }
+  }, []);
+  
   const handleStartRecording = useCallback(() => {
     onStart({
       audio: recordSystemAudio,
       microphone: recordMicrophone,
       microphoneDeviceId: selectedMicrophoneId,
-      videoBitsPerSecond: videoQuality
+      videoBitsPerSecond: videoQuality,
+      showMouseClicks: settings?.showMouseClicks ?? false,
+      autoStopAfter: settings?.enableAutoStop ? settings.autoStopAfter : undefined
     });
-  }, [onStart, recordSystemAudio, recordMicrophone, selectedMicrophoneId, videoQuality]);
+  }, [onStart, recordSystemAudio, recordMicrophone, selectedMicrophoneId, videoQuality, settings]);
   
   return (
     <div className="glass-panel p-4 sm:p-6 flex flex-col space-y-6">
@@ -225,6 +243,12 @@ export function RecordingControls({
       
       {isRecording && (
         <div className="text-center text-sm text-muted-foreground">
+          {settings?.enableShortcuts && (
+            <div className="mb-2">
+              Shortcuts: <kbd className="px-1.5 py-0.5 bg-secondary rounded text-xs mx-1">F9</kbd> to stop, 
+              <kbd className="px-1.5 py-0.5 bg-secondary rounded text-xs mx-1">F10</kbd> to pause/resume
+            </div>
+          )}
           Press <kbd className="px-1.5 py-0.5 bg-secondary rounded text-xs">ESC</kbd> to cancel screen selection
         </div>
       )}

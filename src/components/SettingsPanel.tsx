@@ -6,16 +6,46 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface SettingsPanelProps {
   isRecording: boolean;
+  onSettingsChange?: (settings: RecordingSettings) => void;
 }
 
-export function SettingsPanel({ isRecording }: SettingsPanelProps) {
+export interface RecordingSettings {
+  showMouseClicks: boolean;
+  enableAutoStop: boolean;
+  autoStopAfter: number; // minutes
+  enableShortcuts: boolean;
+}
+
+export function SettingsPanel({ isRecording, onSettingsChange }: SettingsPanelProps) {
   const [showMouseClicks, setShowMouseClicks] = useState(true);
   const [autoStopAfter, setAutoStopAfter] = useState(60); // minutes
   const [enableAutoStop, setEnableAutoStop] = useState(false);
   const [enableShortcuts, setEnableShortcuts] = useState(true);
+  
+  const handleSaveSettings = () => {
+    const settings: RecordingSettings = {
+      showMouseClicks,
+      enableAutoStop,
+      autoStopAfter,
+      enableShortcuts
+    };
+    
+    if (onSettingsChange) {
+      onSettingsChange(settings);
+    }
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('recordingSettings', JSON.stringify(settings));
+    
+    toast({
+      title: "Settings Saved",
+      description: "Your recording preferences have been saved.",
+    });
+  };
   
   return (
     <div className="glass-panel p-4">
@@ -101,6 +131,7 @@ export function SettingsPanel({ isRecording }: SettingsPanelProps) {
             size="sm" 
             className="w-full button-transition"
             disabled={isRecording}
+            onClick={handleSaveSettings}
           >
             <Save className="h-4 w-4 mr-2" />
             Save Settings

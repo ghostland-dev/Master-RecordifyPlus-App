@@ -3,9 +3,10 @@ import { Header } from "@/components/Header";
 import { RecordingControls } from "@/components/RecordingControls";
 import { WebcamPreview } from "@/components/WebcamPreview";
 import { SourceSelector } from "@/components/SourceSelector";
-import { SettingsPanel } from "@/components/SettingsPanel";
+import { SettingsPanel, RecordingSettings } from "@/components/SettingsPanel";
 import { useScreenRecording } from "@/hooks/useScreenRecording";
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const {
@@ -21,6 +22,29 @@ const Index = () => {
   } = useScreenRecording();
   
   const [showPreview, setShowPreview] = useState(false);
+  const [settings, setSettings] = useState<RecordingSettings>({
+    showMouseClicks: true,
+    enableAutoStop: false,
+    autoStopAfter: 60,
+    enableShortcuts: true
+  });
+  
+  // Load saved settings on component mount
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('recordingSettings');
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      toast({
+        title: "Settings Error",
+        description: "Could not load your saved settings",
+        variant: "destructive"
+      });
+    }
+  }, []);
   
   // Show recording preview when a recording is available
   useEffect(() => {
@@ -28,6 +52,10 @@ const Index = () => {
       setShowPreview(true);
     }
   }, [recordingUrl, isRecording]);
+  
+  const handleSettingsChange = (newSettings: RecordingSettings) => {
+    setSettings(newSettings);
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
@@ -100,13 +128,17 @@ const Index = () => {
                 onPause={pauseRecording}
                 onResume={resumeRecording}
                 onSave={saveRecording}
+                settings={settings}
               />
             </div>
             
             <div className="space-y-6">
               <WebcamPreview isRecording={isRecording} />
               <SourceSelector isRecording={isRecording} />
-              <SettingsPanel isRecording={isRecording} />
+              <SettingsPanel 
+                isRecording={isRecording} 
+                onSettingsChange={handleSettingsChange}
+              />
             </div>
           </div>
           

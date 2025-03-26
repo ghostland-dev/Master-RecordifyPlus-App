@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 
 interface RecordingOptions {
@@ -8,6 +8,8 @@ interface RecordingOptions {
   microphoneDeviceId?: string;
   videoBitsPerSecond?: number;
   audioBitsPerSecond?: number;
+  showMouseClicks?: boolean;
+  autoStopAfter?: number; // in minutes
 }
 
 export function useScreenRecording() {
@@ -22,6 +24,93 @@ export function useScreenRecording() {
   const timerRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const pausedTimeRef = useRef<number>(0);
+  const autoStopTimerRef = useRef<number | null>(null);
+  const clickListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
+  const clickElementsRef = useRef<HTMLElement[]>([]);
+  
+  // Clean up function for mouse click indicators
+  const cleanupClickIndicators = useCallback(() => {
+    clickElementsRef.current.forEach(element => {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    });
+    clickElementsRef.current = [];
+  }, []);
+  
+  // Setup keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC key is handled by the browser for exiting screen share
+      
+      // F9 key to start/stop recording
+      if (e.key === 'F9') {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          // We can't start recording with just the key press as we need options
+          // This could display a toast notification instead
+          toast({
+            title: "Keyboard Shortcut Detected",
+            description: "Press the Start Recording button to configure and start recording",
+          });
+        }
+      }
+      
+      // F10 key to pause/resume recording
+      if (e.key === 'F10' && isRecording) {
+        if (isPaused) {
+          resumeRecording();
+        } else {
+          pauseRecording();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isRecording, isPaused]);
+  
+  // Set up mouse click visualization
+  const setupMouseClickVisualization = useCallback((showMouseClicks: boolean) => {
+    if (showMouseClicks) {
+      const clickHandler = (e: MouseEvent) => {
+        const clickElement = document.createElement('div');
+        clickElement.style.position = 'fixed';
+        clickElement.style.width = '20px';
+        clickElement.style.height = '20px';
+        clickElement.style.borderRadius = '50%';
+        clickElement.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+        clickElement.style.transform = 'translate(-50%, -50%)';
+        clickElement.style.pointerEvents = 'none';
+        clickElement.style.zIndex = '10000';
+        clickElement.style.left = `${e.clientX}px`;
+        clickElement.style.top = `${e.clientY}px`;
+        clickElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        
+        document.body.appendChild(clickElement);
+        clickElementsRef.current.push(clickElement);
+        
+        // Animate and remove the click indicator
+        setTimeout(() => {
+          clickElement.style.opacity = '0';
+          clickElement.style.transform = 'translate(-50%, -50%) scale(1.5)';
+          
+          setTimeout(() => {
+            if (clickElement.parentNode) {
+              clickElement.parentNode.removeChild(clickElement);
+              clickElementsRef.current = clickElementsRef.current.filter(el => el !== clickElement);
+            }
+          }, 500);
+        }, 500);
+      };
+      
+      clickListenerRef.current = clickHandler;
+      window.addEventListener('click', clickHandler);
+    }
+  }, []);
   
   // Function to start recording
   const startRecording = useCallback(async (options: RecordingOptions) => {
@@ -35,6 +124,7 @@ export function useScreenRecording() {
       const displayMediaOptions: DisplayMediaStreamOptions = {
         video: {
           displaySurface: 'monitor',
+          cursor: 'always' as DisplayCaptureSurfaceType,
         },
         audio: options.audio
       };
@@ -91,6 +181,20 @@ export function useScreenRecording() {
           timerRef.current = null;
         }
         
+        // Clean up auto-stop timer
+        if (autoStopTimerRef.current) {
+          window.clearTimeout(autoStopTimerRef.current);
+          autoStopTimerRef.current = null;
+        }
+        
+        // Clean up click visualization
+        if (clickListenerRef.current) {
+          window.removeEventListener('click', clickListenerRef.current);
+          clickListenerRef.current = null;
+        }
+        
+        cleanupClickIndicators();
+        
         // Create recording blob and URL
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
@@ -122,6 +226,25 @@ export function useScreenRecording() {
         }
       }, 100);
       
+      // Set up auto-stop if enabled
+      if (options.autoStopAfter && options.autoStopAfter > 0) {
+        const timeInMs = options.autoStopAfter * 60 * 1000; // Convert minutes to ms
+        autoStopTimerRef.current = window.setTimeout(() => {
+          if (mediaRecorderRef.current && isRecording) {
+            stopRecording();
+            toast({
+              title: "Auto-stop Triggered",
+              description: `Recording automatically stopped after ${options.autoStopAfter} minutes`,
+            });
+          }
+        }, timeInMs);
+      }
+      
+      // Set up mouse click visualization if enabled
+      if (options.showMouseClicks) {
+        setupMouseClickVisualization(true);
+      }
+      
       setIsRecording(true);
       toast({
         title: "Recording Started",
@@ -141,7 +264,7 @@ export function useScreenRecording() {
         variant: "destructive",
       });
     }
-  }, [isPaused, recordedChunks]);
+  }, [isPaused, recordedChunks, setupMouseClickVisualization, cleanupClickIndicators]);
   
   // Function to stop recording
   const stopRecording = useCallback(() => {
@@ -214,6 +337,29 @@ export function useScreenRecording() {
       });
     }
   }, [recordedChunks]);
+  
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
+      
+      if (autoStopTimerRef.current) {
+        window.clearTimeout(autoStopTimerRef.current);
+      }
+      
+      if (clickListenerRef.current) {
+        window.removeEventListener('click', clickListenerRef.current);
+      }
+      
+      cleanupClickIndicators();
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cleanupClickIndicators]);
   
   return {
     isRecording,

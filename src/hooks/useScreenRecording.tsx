@@ -31,13 +31,15 @@ export function useScreenRecording() {
       setRecordingUrl(null);
       setRecordingTime(0);
       
-      // Set up display media capture
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { 
-          cursor: 'always' 
+      // Set up display media capture with proper TypeScript types
+      const displayMediaOptions: DisplayMediaStreamOptions = {
+        video: {
+          displaySurface: 'monitor',
         },
         audio: options.audio
-      });
+      };
+      
+      const displayStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
       
       let combinedStream = displayStream;
       

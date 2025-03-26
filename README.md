@@ -1,8 +1,10 @@
-# Welcome to your Lovable project
+# Renix Screen Recorder - Free Forever by Ismail MOUYAHADA
+
+# Motivations
+I use linux and there's few tools with clean interface to record Unix based interfaces
 
 ## Project info
  
-
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>

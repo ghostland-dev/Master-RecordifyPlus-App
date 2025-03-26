@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/Header";
 import { RecordingControls } from "@/components/RecordingControls";
 import { WebcamPreview } from "@/components/WebcamPreview";
@@ -81,9 +80,8 @@ const Index = () => {
   const handleExport = (options: ExportOptions) => {
     console.log('Export options:', options);
     
-    // In the web version, we use the default saveRecording method
-    // In Electron, this would be enhanced to use the options
-    saveRecording();
+    // Pass the format to the saveRecording method
+    saveRecording(options.format);
     
     toast({
       title: "Recording Exported",

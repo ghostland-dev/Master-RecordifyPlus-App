@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { MouseClickEffect } from '@/components/SettingsPanel';
+import { MouseClickEffect, ExportFormat } from '@/components/SettingsPanel';
 
 interface RecordingOptions {
   audio: boolean;
@@ -311,7 +311,7 @@ export function useScreenRecording() {
   }, [isRecording, isPaused]);
   
   // Function to save recording
-  const saveRecording = useCallback(() => {
+  const saveRecording = useCallback((format: ExportFormat = 'webm') => {
     if (recordedChunks.length === 0) {
       toast({
         title: "No Recording",
@@ -322,12 +322,50 @@ export function useScreenRecording() {
     }
     
     try {
-      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      // Determine the correct mime type based on format
+      let mimeType = 'video/webm';
+      let fileExtension = 'webm';
+      
+      switch (format) {
+        case 'mp4':
+          mimeType = 'video/mp4';
+          fileExtension = 'mp4';
+          break;
+        case 'avi':
+          mimeType = 'video/x-msvideo';
+          fileExtension = 'avi';
+          break;
+        case 'gif':
+          mimeType = 'image/gif';
+          fileExtension = 'gif';
+          break;
+        case 'mp3':
+          mimeType = 'audio/mpeg';
+          fileExtension = 'mp3';
+          break;
+        case 'wav':
+          mimeType = 'audio/wav';
+          fileExtension = 'wav';
+          break;
+        case 'ogg':
+          mimeType = 'audio/ogg';
+          fileExtension = 'ogg';
+          break;
+        case 'aac':
+          mimeType = 'audio/aac';
+          fileExtension = 'aac';
+          break;
+        default:
+          mimeType = 'video/webm';
+          fileExtension = 'webm';
+      }
+      
+      const blob = new Blob(recordedChunks, { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
       a.href = url;
-      a.download = `screen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.webm`;
+      a.download = `screen-recording-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${fileExtension}`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
@@ -337,7 +375,7 @@ export function useScreenRecording() {
       
       toast({
         title: "Recording Saved",
-        description: "Your recording has been saved to your device",
+        description: `Your recording has been saved as a ${fileExtension.toUpperCase()} file`,
       });
     } catch (error) {
       console.error('Error saving recording:', error);

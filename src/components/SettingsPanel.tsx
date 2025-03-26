@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Settings, Clock, MousePointer, Keyboard, Save, Paintbrush, Film, Maximize2 } from "lucide-react";
+import { Settings, Clock, MousePointer, Keyboard, Save, Paintbrush, Film, Maximize2, FileAudio } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -26,7 +26,7 @@ export interface RecordingSettings {
 }
 
 export type MouseClickEffect = 'circle' | 'ripple' | 'highlight' | 'none';
-export type ExportFormat = 'mp4' | 'webm' | 'avi' | 'gif';
+export type ExportFormat = 'mp4' | 'webm' | 'avi' | 'gif' | 'mp3' | 'wav' | 'ogg' | 'aac';
 export type CaptureArea = 'full-screen' | 'window' | 'custom-area';
 
 export function SettingsPanel({ isRecording, onSettingsChange }: SettingsPanelProps) {

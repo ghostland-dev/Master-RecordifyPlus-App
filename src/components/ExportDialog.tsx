@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Film, Save, Video, Settings, Download, Share } from "lucide-react";
+import { Film, Save, Video, Settings, Download, Share, FileAudio } from "lucide-react";
 import { ExportFormat } from "@/components/SettingsPanel";
 
 interface ExportDialogProps {
@@ -29,6 +29,7 @@ export function ExportDialog({ isOpen, onClose, onExport, videoUrl }: ExportDial
   const [format, setFormat] = useState<ExportFormat>('webm');
   const [quality, setQuality] = useState(80);
   const [compression, setCompression] = useState(50);
+  const [exportType, setExportType] = useState<"video" | "audio">("video");
   
   // Load default settings from localStorage
   React.useEffect(() => {
@@ -63,10 +64,14 @@ export function ExportDialog({ isOpen, onClose, onExport, videoUrl }: ExportDial
       mp4: 15,
       webm: 10,
       avi: 20,
-      gif: 30
+      gif: 30,
+      mp3: 2,
+      wav: 10,
+      ogg: 4,
+      aac: 1.5
     };
     
-    const baseSize = baseSizes[format];
+    const baseSize = baseSizes[format as keyof typeof baseSizes] || 10;
     // Higher quality means larger file
     const qualityFactor = quality / 50;
     // Higher compression means smaller file
@@ -80,7 +85,11 @@ export function ExportDialog({ isOpen, onClose, onExport, videoUrl }: ExportDial
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Film className="h-5 w-5" />
+            {exportType === "video" ? (
+              <Film className="h-5 w-5" />
+            ) : (
+              <FileAudio className="h-5 w-5" />
+            )}
             <span>Export Recording</span>
           </DialogTitle>
           <DialogDescription>
@@ -98,6 +107,27 @@ export function ExportDialog({ isOpen, onClose, onExport, videoUrl }: ExportDial
               />
             </div>
           )}
+          
+          <div className="flex space-x-2 mb-2">
+            <Button
+              variant={exportType === "video" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setExportType("video")}
+              className="flex items-center gap-1.5"
+            >
+              <Video className="h-4 w-4" />
+              Video
+            </Button>
+            <Button
+              variant={exportType === "audio" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setExportType("audio")}
+              className="flex items-center gap-1.5"
+            >
+              <FileAudio className="h-4 w-4" />
+              Audio
+            </Button>
+          </div>
           
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid grid-cols-2 mb-4">
@@ -124,10 +154,21 @@ export function ExportDialog({ isOpen, onClose, onExport, videoUrl }: ExportDial
                       <SelectValue placeholder="Format" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="mp4">MP4</SelectItem>
-                      <SelectItem value="webm">WebM</SelectItem>
-                      <SelectItem value="avi">AVI</SelectItem>
-                      <SelectItem value="gif">GIF</SelectItem>
+                      {exportType === "video" ? (
+                        <>
+                          <SelectItem value="mp4">MP4</SelectItem>
+                          <SelectItem value="webm">WebM</SelectItem>
+                          <SelectItem value="avi">AVI</SelectItem>
+                          <SelectItem value="gif">GIF</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="mp3">MP3</SelectItem>
+                          <SelectItem value="wav">WAV</SelectItem>
+                          <SelectItem value="ogg">OGG</SelectItem>
+                          <SelectItem value="aac">AAC</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

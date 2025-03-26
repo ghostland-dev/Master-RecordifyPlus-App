@@ -2,8 +2,10 @@
 import { Header } from "@/components/Header";
 import { RecordingControls } from "@/components/RecordingControls";
 import { WebcamPreview } from "@/components/WebcamPreview";
-import { SourceSelector } from "@/components/SourceSelector";
+import { SourceSelector, CaptureSource } from "@/components/SourceSelector";
 import { SettingsPanel, RecordingSettings } from "@/components/SettingsPanel";
+import { AnnotationTools, AnnotationTool } from "@/components/AnnotationTools";
+import { ExportDialog, ExportOptions } from "@/components/ExportDialog";
 import { useScreenRecording } from "@/hooks/useScreenRecording";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -26,8 +28,17 @@ const Index = () => {
     showMouseClicks: true,
     enableAutoStop: false,
     autoStopAfter: 60,
-    enableShortcuts: true
+    enableShortcuts: true,
+    mouseClickEffect: 'circle',
+    enableAnnotations: false,
+    exportFormat: 'webm',
+    captureArea: 'full-screen'
   });
+  const [selectedSource, setSelectedSource] = useState<CaptureSource>({ 
+    type: 'full-screen',
+    displayId: 'primary'
+  });
+  const [showExportDialog, setShowExportDialog] = useState(false);
   
   // Load saved settings on component mount
   useEffect(() => {
@@ -50,11 +61,34 @@ const Index = () => {
   useEffect(() => {
     if (recordingUrl && !isRecording) {
       setShowPreview(true);
+      setShowExportDialog(true);
     }
   }, [recordingUrl, isRecording]);
   
   const handleSettingsChange = (newSettings: RecordingSettings) => {
     setSettings(newSettings);
+  };
+  
+  const handleSourceChange = (source: CaptureSource) => {
+    setSelectedSource(source);
+  };
+  
+  const handleAnnotationToolSelect = (tool: AnnotationTool) => {
+    console.log('Selected annotation tool:', tool);
+    // Would be implemented with annotation overlay in Electron
+  };
+  
+  const handleExport = (options: ExportOptions) => {
+    console.log('Export options:', options);
+    
+    // In the web version, we use the default saveRecording method
+    // In Electron, this would be enhanced to use the options
+    saveRecording();
+    
+    toast({
+      title: "Recording Exported",
+      description: `Your recording has been saved as ${options.filename}.${options.format}`,
+    });
   };
   
   return (
@@ -127,14 +161,17 @@ const Index = () => {
                 onStop={stopRecording}
                 onPause={pauseRecording}
                 onResume={resumeRecording}
-                onSave={saveRecording}
+                onSave={() => setShowExportDialog(true)}
                 settings={settings}
               />
             </div>
             
             <div className="space-y-6">
               <WebcamPreview isRecording={isRecording} />
-              <SourceSelector isRecording={isRecording} />
+              <SourceSelector 
+                isRecording={isRecording} 
+                onSourceChange={handleSourceChange}
+              />
               <SettingsPanel 
                 isRecording={isRecording} 
                 onSettingsChange={handleSettingsChange}
@@ -150,6 +187,21 @@ const Index = () => {
           </div>
         </div>
       </main>
+      
+      {/* Annotation Tools (only shown during recording) */}
+      <AnnotationTools 
+        isRecording={isRecording} 
+        isEnabled={settings.enableAnnotations}
+        onToolSelect={handleAnnotationToolSelect}
+      />
+      
+      {/* Export Dialog */}
+      <ExportDialog 
+        isOpen={showExportDialog} 
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExport}
+        videoUrl={recordingUrl}
+      />
     </div>
   );
 };

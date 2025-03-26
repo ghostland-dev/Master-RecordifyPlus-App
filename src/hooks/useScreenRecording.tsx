@@ -1,6 +1,6 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { MouseClickEffect } from '@/components/SettingsPanel';
 
 interface RecordingOptions {
   audio: boolean;
@@ -9,7 +9,10 @@ interface RecordingOptions {
   videoBitsPerSecond?: number;
   audioBitsPerSecond?: number;
   showMouseClicks?: boolean;
+  mouseClickEffect?: MouseClickEffect;
   autoStopAfter?: number; // in minutes
+  captureArea?: 'full-screen' | 'window' | 'custom-area';
+  displayId?: string;
 }
 
 export function useScreenRecording() {
@@ -38,73 +41,72 @@ export function useScreenRecording() {
     clickElementsRef.current = [];
   }, []);
   
-  // Setup keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // ESC key is handled by the browser for exiting screen share
-      
-      // F9 key to start/stop recording
-      if (e.key === 'F9') {
-        if (isRecording) {
-          stopRecording();
-        } else {
-          // We can't start recording with just the key press as we need options
-          // This could display a toast notification instead
-          toast({
-            title: "Keyboard Shortcut Detected",
-            description: "Press the Start Recording button to configure and start recording",
-          });
-        }
-      }
-      
-      // F10 key to pause/resume recording
-      if (e.key === 'F10' && isRecording) {
-        if (isPaused) {
-          resumeRecording();
-        } else {
-          pauseRecording();
-        }
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isRecording, isPaused]);
-  
-  // Set up mouse click visualization
-  const setupMouseClickVisualization = useCallback((showMouseClicks: boolean) => {
+  // Set up mouse click visualization with enhanced effects
+  const setupMouseClickVisualization = useCallback((showMouseClicks: boolean, effectStyle: MouseClickEffect = 'circle') => {
     if (showMouseClicks) {
       const clickHandler = (e: MouseEvent) => {
+        if (effectStyle === 'none') return;
+        
         const clickElement = document.createElement('div');
         clickElement.style.position = 'fixed';
         clickElement.style.width = '20px';
         clickElement.style.height = '20px';
-        clickElement.style.borderRadius = '50%';
-        clickElement.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
-        clickElement.style.transform = 'translate(-50%, -50%)';
         clickElement.style.pointerEvents = 'none';
         clickElement.style.zIndex = '10000';
         clickElement.style.left = `${e.clientX}px`;
         clickElement.style.top = `${e.clientY}px`;
-        clickElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        
+        // Apply different styles based on effect type
+        switch (effectStyle) {
+          case 'circle':
+            clickElement.style.borderRadius = '50%';
+            clickElement.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+            clickElement.style.transform = 'translate(-50%, -50%)';
+            clickElement.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            break;
+            
+          case 'ripple':
+            clickElement.style.borderRadius = '50%';
+            clickElement.style.border = '2px solid rgba(255, 0, 0, 0.8)';
+            clickElement.style.backgroundColor = 'transparent';
+            clickElement.style.transform = 'translate(-50%, -50%) scale(0.5)';
+            clickElement.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            break;
+            
+          case 'highlight':
+            clickElement.style.width = '30px';
+            clickElement.style.height = '30px';
+            clickElement.style.borderRadius = '50%';
+            clickElement.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
+            clickElement.style.boxShadow = '0 0 10px rgba(255, 255, 0, 0.6)';
+            clickElement.style.transform = 'translate(-50%, -50%)';
+            clickElement.style.transition = 'opacity 0.4s ease, box-shadow 0.4s ease';
+            break;
+        }
         
         document.body.appendChild(clickElement);
         clickElementsRef.current.push(clickElement);
         
         // Animate and remove the click indicator
         setTimeout(() => {
-          clickElement.style.opacity = '0';
-          clickElement.style.transform = 'translate(-50%, -50%) scale(1.5)';
+          if (effectStyle === 'circle') {
+            clickElement.style.opacity = '0';
+            clickElement.style.transform = 'translate(-50%, -50%) scale(1.5)';
+          } else if (effectStyle === 'ripple') {
+            clickElement.style.opacity = '0';
+            clickElement.style.transform = 'translate(-50%, -50%) scale(2)';
+          } else if (effectStyle === 'highlight') {
+            clickElement.style.opacity = '0';
+            clickElement.style.boxShadow = '0 0 20px rgba(255, 255, 0, 0)';
+          }
           
           setTimeout(() => {
             if (clickElement.parentNode) {
               clickElement.parentNode.removeChild(clickElement);
               clickElementsRef.current = clickElementsRef.current.filter(el => el !== clickElement);
             }
-          }, 500);
-        }, 500);
+          }, 600);
+        }, 400);
       };
       
       clickListenerRef.current = clickHandler;
@@ -112,7 +114,7 @@ export function useScreenRecording() {
     }
   }, []);
   
-  // Function to start recording
+  // Function to start recording with enhanced options
   const startRecording = useCallback(async (options: RecordingOptions) => {
     try {
       // Reset recording state
@@ -120,10 +122,19 @@ export function useScreenRecording() {
       setRecordingUrl(null);
       setRecordingTime(0);
       
+      // Configure display capture based on selected area
+      let displaySurface: DisplayCaptureSurfaceType = 'monitor';
+      
+      if (options.captureArea === 'window') {
+        displaySurface = 'window';
+      } else if (options.captureArea === 'custom-area') {
+        displaySurface = 'browser'; // In Electron this would be more specific
+      }
+      
       // Set up display media capture with proper TypeScript types
       const displayMediaOptions: DisplayMediaStreamOptions = {
         video: {
-          displaySurface: 'monitor',
+          displaySurface,
           cursor: 'always' as DisplayCaptureSurfaceType,
         },
         audio: options.audio
@@ -242,7 +253,7 @@ export function useScreenRecording() {
       
       // Set up mouse click visualization if enabled
       if (options.showMouseClicks) {
-        setupMouseClickVisualization(true);
+        setupMouseClickVisualization(true, options.mouseClickEffect);
       }
       
       setIsRecording(true);

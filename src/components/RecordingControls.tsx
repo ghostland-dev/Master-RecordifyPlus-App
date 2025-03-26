@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { RecordingTimer } from "@/components/RecordingTimer";
-import { Play, Pause, Square, Save, Cpu, Mic, Settings, Monitor } from "lucide-react";
+import { Play, Pause, Square, Save, Cpu, Mic, Settings, Monitor, Film, MousePointer, Layout } from "lucide-react";
 import { useCallback, useState, useEffect } from "react";
 import {
   Dialog,
@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDevices } from "@/hooks/useDevices";
 import { Badge } from "@/components/ui/badge";
-import { RecordingSettings } from "@/components/SettingsPanel";
+import { RecordingSettings, MouseClickEffect, CaptureArea, ExportFormat } from "@/components/SettingsPanel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -46,21 +47,28 @@ export function RecordingControls({
   const [recordMicrophone, setRecordMicrophone] = useState(true);
   const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string>("");
   const [videoQuality, setVideoQuality] = useState(2500000); // 2.5 Mbps default
+  const [captureArea, setCaptureArea] = useState<CaptureArea>('full-screen');
+  const [mouseClickEffect, setMouseClickEffect] = useState<MouseClickEffect>('circle');
   
   const { audioInputs, loading } = useDevices();
   
   // Load saved settings
   useEffect(() => {
     try {
+      if (settings) {
+        setCaptureArea(settings.captureArea || 'full-screen');
+        setMouseClickEffect(settings.mouseClickEffect || 'circle');
+      }
+      
       const savedSettings = localStorage.getItem('recordingSettings');
       if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings) as RecordingSettings;
+        const parsedSettings = JSON.parse(savedSettings);
         console.log('Loaded saved settings:', parsedSettings);
       }
     } catch (error) {
       console.error('Error loading saved settings:', error);
     }
-  }, []);
+  }, [settings]);
   
   const handleStartRecording = useCallback(() => {
     onStart({
@@ -69,7 +77,9 @@ export function RecordingControls({
       microphoneDeviceId: selectedMicrophoneId,
       videoBitsPerSecond: videoQuality,
       showMouseClicks: settings?.showMouseClicks ?? false,
-      autoStopAfter: settings?.enableAutoStop ? settings.autoStopAfter : undefined
+      mouseClickEffect: settings?.mouseClickEffect ?? 'circle',
+      autoStopAfter: settings?.enableAutoStop ? settings.autoStopAfter : undefined,
+      captureArea: settings?.captureArea ?? 'full-screen'
     });
   }, [onStart, recordSystemAudio, recordMicrophone, selectedMicrophoneId, videoQuality, settings]);
   
@@ -107,7 +117,7 @@ export function RecordingControls({
                   <span>Settings</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>Recording Settings</DialogTitle>
                   <DialogDescription>
@@ -115,33 +125,14 @@ export function RecordingControls({
                   </DialogDescription>
                 </DialogHeader>
                 
-                <div className="grid gap-4 py-4">
-                  <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
-                      <Cpu className="h-4 w-4" />
-                      <span>Video Quality</span>
-                    </h3>
-                    <div className="px-1">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-xs text-muted-foreground">Standard</span>
-                        <span className="text-xs text-muted-foreground">High</span>
-                      </div>
-                      <Slider 
-                        defaultValue={[videoQuality]} 
-                        max={6000000}
-                        min={1000000}
-                        step={500000}
-                        onValueChange={(value) => setVideoQuality(value[0])}
-                      />
-                      <div className="mt-2">
-                        <Badge variant="outline" className="text-xs">
-                          {(videoQuality / 1000000).toFixed(1)} Mbps
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
+                <Tabs defaultValue="audio" className="mt-4">
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="audio">Audio</TabsTrigger>
+                    <TabsTrigger value="video">Video</TabsTrigger>
+                    <TabsTrigger value="capture">Capture</TabsTrigger>
+                  </TabsList>
                   
-                  <div className="border-t pt-4">
+                  <TabsContent value="audio" className="space-y-4 py-4">
                     <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
                       <Mic className="h-4 w-4" />
                       <span>Audio Sources</span>
@@ -199,8 +190,87 @@ export function RecordingControls({
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="video" className="space-y-4 py-4">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <Film className="h-4 w-4" />
+                      <span>Video Quality</span>
+                    </h3>
+                    <div className="px-1">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-xs text-muted-foreground">Standard</span>
+                        <span className="text-xs text-muted-foreground">High</span>
+                      </div>
+                      <Slider 
+                        defaultValue={[videoQuality]} 
+                        max={6000000}
+                        min={1000000}
+                        step={500000}
+                        onValueChange={(value) => setVideoQuality(value[0])}
+                      />
+                      <div className="mt-2">
+                        <Badge variant="outline" className="text-xs">
+                          {(videoQuality / 1000000).toFixed(1)} Mbps
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6">
+                      <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
+                        <MousePointer className="h-4 w-4" />
+                        <span>Mouse Click Effect</span>
+                      </h3>
+                      
+                      <Select
+                        value={mouseClickEffect}
+                        onValueChange={(value: MouseClickEffect) => setMouseClickEffect(value)}
+                      >
+                        <SelectTrigger id="click-effect" className="w-full">
+                          <SelectValue placeholder="Select effect style" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="circle">Circle</SelectItem>
+                          <SelectItem value="ripple">Ripple</SelectItem>
+                          <SelectItem value="highlight">Highlight</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="capture" className="space-y-4 py-4">
+                    <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
+                      <Layout className="h-4 w-4" />
+                      <span>Capture Area</span>
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="capture-area" className="text-sm">Default Capture Type</Label>
+                        <Select
+                          value={captureArea}
+                          onValueChange={(value: CaptureArea) => setCaptureArea(value)}
+                        >
+                          <SelectTrigger id="capture-area" className="w-36">
+                            <SelectValue placeholder="Select area" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="full-screen">Full Screen</SelectItem>
+                            <SelectItem value="window">Window</SelectItem>
+                            <SelectItem value="custom-area">Custom Area</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="rounded-md bg-secondary/20 p-3 mt-4">
+                        <p className="text-xs text-muted-foreground">
+                          In the desktop version, you'll be able to select and save specific regions or windows for recording.
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           </>
@@ -261,7 +331,7 @@ export function RecordingControls({
           className="mx-auto button-transition flex space-x-2"
         >
           <Save className="h-4 w-4" />
-          <span>Save Last Recording</span>
+          <span>Export Last Recording</span>
         </Button>
       )}
     </div>

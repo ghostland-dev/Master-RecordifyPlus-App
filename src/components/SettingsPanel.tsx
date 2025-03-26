@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Settings, Clock, MousePointer, Keyboard, Save, Paintbrush, Film } from "lucide-react";
+import { Settings, Clock, MousePointer, Keyboard, Save, Paintbrush, Film, Maximize2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";

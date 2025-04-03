@@ -1,4 +1,5 @@
-# Renix Screen Recorder - Free Forever by Ismail MOUYAHADA
+# Renix Screen Recorder 
+![image](https://github.com/user-attachments/assets/54015009-a721-4b70-a330-444a9b75cdfe)
 
 # Motivations
 I use linux and there's few tools with clean interface to record Unix based interfaces
